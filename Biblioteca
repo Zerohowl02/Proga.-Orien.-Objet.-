@@ -1,0 +1,237 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class Biblioteca {
+
+    // Códigos ANSI para pintar el estado en la terminal
+    static final String RESET = "\u001B[0m";
+    static final String VERDE = "\u001B[42m\u001B[30m";
+    static final String AMARILLO = "\u001B[43m\u001B[30m";
+    static final String ROJO = "\u001B[41m\u001B[97m";
+
+    // Estados posibles de un libro y su color
+    enum Estado {
+        DISPONIBLE("Disponible", VERDE),
+        EN_PROCESO("En proceso de préstamo", AMARILLO),
+        PRESTADO("Prestado", ROJO);
+
+        private final String texto;
+        private final String color;
+
+        Estado(String texto, String color) {
+            this.texto = texto;
+            this.color = color;
+        }
+
+        String conColor() {
+            return color + " " + texto + " " + RESET;
+        }
+    }
+
+    // Clase que representa un libro de la biblioteca
+    static class Libro {
+        private final String codigo;
+        private final String titulo;
+        private final String autor;
+        private Estado estado = Estado.DISPONIBLE;
+
+        Libro(String codigo, String titulo, String autor) {
+            this.codigo = codigo;
+            this.titulo = titulo;
+            this.autor = autor;
+        }
+
+        String getCodigo() {
+            return codigo;
+        }
+
+        Estado getEstado() {
+            return estado;
+        }
+
+        void setEstado(Estado estado) {
+            this.estado = estado;
+        }
+
+        void mostrar() {
+            System.out.printf("%-6s %-38s %-26s %s%n", codigo, titulo, autor, estado.conColor());
+        }
+    }
+
+    private static final List<Libro> libros = new ArrayList<>();
+    private static final Scanner sc = new Scanner(System.in);
+    private static int contador = 1;
+
+    public static void main(String[] args) {
+        cargarLibrosIniciales();
+        int opcion;
+        do {
+            mostrarMenu();
+            opcion = leerOpcion();
+            switch (opcion) {
+                case 1:
+                    mostrarTodos();
+                    break;
+                case 2:
+                    buscarPorCodigo();
+                    break;
+                case 3:
+                    pedirPrestamo();
+                    break;
+                case 4:
+                    devolverLibro();
+                    break;
+                case 5:
+                    agregarLibro();
+                    break;
+                case 0:
+                    System.out.println("¡Hasta pronto!");
+                    break;
+                default:
+                    System.out.println("Opción no válida.");
+            }
+        } while (opcion != 0);
+    }
+
+    private static void mostrarMenu() {
+        System.out.println();
+        System.out.println("===== BIBLIOTECA =====");
+        System.out.println("1. Ver todos los libros (con su código)");
+        System.out.println("2. Buscar un libro por código");
+        System.out.println("3. Pedir un libro prestado");
+        System.out.println("4. Devolver un libro");
+        System.out.println("5. Agregar un libro");
+        System.out.println("0. Salir");
+        System.out.print("Elige una opción: ");
+    }
+
+    private static int leerOpcion() {
+        try {
+            return Integer.parseInt(sc.nextLine().trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    private static String nuevoCodigo() {
+        return String.format("L%03d", contador++);
+    }
+
+    private static void cargarLibrosIniciales() {
+        libros.add(new Libro(nuevoCodigo(), "Cien años de soledad", "Gabriel García Márquez"));
+        libros.add(new Libro(nuevoCodigo(), "Don Quijote de la Mancha", "Miguel de Cervantes"));
+        libros.add(new Libro(nuevoCodigo(), "El Principito", "Antoine de Saint-Exupéry"));
+        libros.add(new Libro(nuevoCodigo(), "1984", "George Orwell"));
+        libros.add(new Libro(nuevoCodigo(), "La metamorfosis", "Franz Kafka"));
+        libros.add(new Libro(nuevoCodigo(), "El coronel no tiene quien le escriba", "Gabriel García Márquez"));
+        libros.add(new Libro(nuevoCodigo(), "Crónica de una muerte anunciada", "Gabriel García Márquez"));
+        libros.add(new Libro(nuevoCodigo(), "Orgullo y prejuicio", "Jane Austen"));
+        libros.add(new Libro(nuevoCodigo(), "Fahrenheit 451", "Ray Bradbury"));
+        libros.add(new Libro(nuevoCodigo(), "Clean Code", "Robert C. Martin"));
+    }
+
+    // Muestra todos los libros con su código y su estado en color
+    private static void mostrarTodos() {
+        System.out.println();
+        System.out.printf("%-6s %-38s %-26s %s%n", "CÓDIGO", "TÍTULO", "AUTOR", "ESTADO");
+        for (Libro l : libros) {
+            l.mostrar();
+        }
+    }
+
+    private static Libro buscarLibro(String codigo) {
+        for (Libro l : libros) {
+            if (l.getCodigo().equalsIgnoreCase(codigo)) {
+                return l;
+            }
+        }
+        return null;
+    }
+
+    // Pide un código; si el usuario no lo sabe escribe ? y se muestran todos
+    private static Libro pedirLibro() {
+        while (true) {
+            System.out.print("Escribe el código del libro (o ? si no lo sabes): ");
+            String entrada = sc.nextLine().trim();
+            if (entrada.equals("?")) {
+                mostrarTodos();
+                continue;
+            }
+            Libro libro = buscarLibro(entrada);
+            if (libro == null) {
+                System.out.println("No existe un libro con ese código. Usa ? para ver todos.");
+            }
+            return libro;
+        }
+    }
+
+    private static void buscarPorCodigo() {
+        Libro libro = pedirLibro();
+        if (libro != null) {
+            System.out.println();
+            System.out.printf("%-6s %-38s %-26s %s%n", "CÓDIGO", "TÍTULO", "AUTOR", "ESTADO");
+            libro.mostrar();
+        }
+    }
+
+    // Amarillo mientras se procesa el préstamo y rojo cuando queda prestado
+    private static void pedirPrestamo() {
+        Libro libro = pedirLibro();
+        if (libro == null) {
+            return;
+        }
+        if (libro.getEstado() == Estado.PRESTADO) {
+            System.out.println("Ese libro ya está prestado.");
+            libro.mostrar();
+            return;
+        }
+
+        libro.setEstado(Estado.EN_PROCESO);
+        System.out.println("Procesando el préstamo...");
+        libro.mostrar();
+        esperar(2000);
+
+        libro.setEstado(Estado.PRESTADO);
+        System.out.println("Préstamo terminado.");
+        libro.mostrar();
+    }
+
+    // Al devolver, el libro vuelve a verde (disponible)
+    private static void devolverLibro() {
+        Libro libro = pedirLibro();
+        if (libro == null) {
+            return;
+        }
+        if (libro.getEstado() != Estado.PRESTADO) {
+            System.out.println("Ese libro no está prestado.");
+            return;
+        }
+        libro.setEstado(Estado.DISPONIBLE);
+        System.out.println("Libro devuelto.");
+        libro.mostrar();
+    }
+
+    private static void agregarLibro() {
+        System.out.print("Título: ");
+        String titulo = sc.nextLine().trim();
+        System.out.print("Autor: ");
+        String autor = sc.nextLine().trim();
+        if (titulo.isEmpty() || autor.isEmpty()) {
+            System.out.println("Debes escribir el título y el autor.");
+            return;
+        }
+        Libro nuevo = new Libro(nuevoCodigo(), titulo, autor);
+        libros.add(nuevo);
+        System.out.println("Libro agregado con el código " + nuevo.getCodigo() + ".");
+        nuevo.mostrar();
+    }
+
+    private static void esperar(int milisegundos) {
+        try {
+            Thread.sleep(milisegundos);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
